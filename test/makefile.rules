@@ -1,0 +1,24 @@
+TOOLS_DIR = ../../../tools/
+SRC_DIR = ../../../
+BIN = bin
+
+C_COMPILER=gcc
+#OBJCOPY=../../tools/arm-2013.05/bin/arm-none-eabi-objcopy
+#C_COMPILER=/opt/arm-2012.09/bin/arm-none-eabi-gcc
+
+UNITY_INC_FILES = $(TOOLS_DIR)/unit_testing_tools/Unity/src/
+UNITY_SRC_FILES = $(TOOLS_DIR)/unit_testing_tools/Unity/src/unity.c
+
+#CMOCK_INC_FILES = /home/easy/devel/c_unit_testing/test_unittesting_tools/unity/CMock/src/
+#CMOCK_INC_FILES = /home/easy/devel/c_unit_testing/test_unittesting_tools/unity/CMock/src/cmock.c
+
+TARGET_EXTENSION=.out
+
+C_FLAGS+=-g -ggdb3 -Wall -std=c11 -pedantic -fprofile-arcs -ftest-coverage
+DEFINES+=-D UNIT_TESTS
+
+%_Runner.c: %.c
+	@echo "generating $<"
+	@ruby $(TOOLS_DIR)/unit_testing_tools/Unity/auto/generate_test_runner.rb $<
+
+
