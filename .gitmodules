@@ -1,3 +1,7 @@
 [submodule "CANopenNode"]
 	path = CANopenNode
 	url = https://github.com/IzidorM/CANopenNode.git
+[submodule "tools/unit_testing_tools/Unity"]
+	path = tools/unit_testing_tools/Unity
+	url = https://github.com/ThrowTheSwitch/Unity.git
+
