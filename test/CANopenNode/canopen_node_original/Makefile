@@ -8,17 +8,21 @@ PROJECT_BASE_DIR = .
 
 TARGET_SRC_FILES= \
 	CO_driver.c \
-	CANopen.c \
 	CO_OD.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_Emergency.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_HBconsumer.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_NMT_Heartbeat.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_PDO.c \
+	$(SRC_DIR)/CANopenNode/stack/CO_OD_interface.c \
 	$(SRC_DIR)/CANopenNode/stack/CO_SDO.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_SDOmaster.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_SYNC.c \
-	$(SRC_DIR)/CANopenNode/stack/CO_trace.c \
 	$(SRC_DIR)/CANopenNode/stack/crc16-ccitt.c \
+
+#	$(SRC_DIR)/CANopenNode/stack/CO_Emergency.c \
+#	$(SRC_DIR)/CANopenNode/stack/CO_HBconsumer.c \
+#	$(SRC_DIR)/CANopenNode/stack/CO_NMT_Heartbeat.c \
+#	$(SRC_DIR)/CANopenNode/stack/CO_PDO.c \
+#	$(SRC_DIR)/CANopenNode/stack/CO_SDOmaster.c \
+#	$(SRC_DIR)/CANopenNode/stack/CO_SYNC.c \
+#	$(SRC_DIR)/CANopenNode/stack/CO_trace.c \
+
+
+#CANopen.c \
 
 
 #$(SRC_DIR)/lib/utils/utils_data_dump.c

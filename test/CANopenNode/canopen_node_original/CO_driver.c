@@ -45,7 +45,7 @@
  * to do so, delete this exception statement from your version.
  */
 
-
+#include <string.h>
 #include "CO_driver.h"
 #include "CO_Emergency.h"
 
@@ -180,9 +180,10 @@ CO_ReturnError_t CO_CANrxBufferInit(
     }
 
     return ret;
+        return 0;
 }
 
-
+CO_CANtx_t last_sent_buffer;
 /******************************************************************************/
 CO_CANtx_t *CO_CANtxBufferInit(
         CO_CANmodule_t         *CANmodule,
@@ -194,146 +195,131 @@ CO_CANtx_t *CO_CANtxBufferInit(
 {
     CO_CANtx_t *buffer = NULL;
 
-    if((CANmodule != NULL) && (index < CANmodule->txSize)){
+ 
         /* get specific buffer */
-        buffer = &CANmodule->txArray[index];
+        buffer = &last_sent_buffer;
 
         /* CAN identifier, DLC and rtr, bit aligned with CAN module transmit buffer.
          * Microcontroller specific. */
-        buffer->ident = ((uint32_t)ident & 0x07FFU)
-                      | ((uint32_t)(((uint32_t)noOfBytes & 0xFU) << 12U))
-                      | ((uint32_t)(rtr ? 0x8000U : 0U));
+        buffer->ident = ((uint32_t)ident & 0x07FFU);
+//                      | ((uint32_t)(((uint32_t)noOfBytes & 0xFU) << 12U))
+//                      | ((uint32_t)(rtr ? 0x8000U : 0U));
 
         buffer->bufferFull = false;
         buffer->syncFlag = syncFlag;
-    }
-
+ 
     return buffer;
 }
 
 
 /******************************************************************************/
-CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer){
-    CO_ReturnError_t err = CO_ERROR_NO;
+CO_ReturnError_t CO_CANsend(CO_CANmodule_t *CANmodule, CO_CANtx_t *buffer)
+{
+        memcpy(&last_sent_buffer, buffer, sizeof(CO_CANtx_t));
+        return 0;
 
-    /* Verify overflow */
-    if(buffer->bufferFull){
-        if(!CANmodule->firstCANtxMessage){
-            /* don't set error, if bootup message is still on buffers */
-            CO_errorReport((CO_EM_t*)CANmodule->em, CO_EM_CAN_TX_OVERFLOW, CO_EMC_CAN_OVERRUN, buffer->ident);
-        }
-        err = CO_ERROR_TX_OVERFLOW;
-    }
-
-    CO_LOCK_CAN_SEND();
-    /* if CAN TX buffer is free, copy message to it */
-    if(1 && CANmodule->CANtxCount == 0){
-        CANmodule->bufferInhibitFlag = buffer->syncFlag;
-        /* copy message and txRequest */
-    }
-    /* if no buffer is free, message will be sent by interrupt */
-    else{
-        buffer->bufferFull = true;
-        CANmodule->CANtxCount++;
-    }
-    CO_UNLOCK_CAN_SEND();
-
-    return err;
+//        //    /* transmit interrupt */
+//        /* First CAN message (bootup) was sent successfully */
+//        CANmodule->firstCANtxMessage = false;
+//        /* clear flag from previous message */
+//        CANmodule->bufferInhibitFlag = false;
+//        /* Are there any new messages waiting to be send */
+//        CANmodule->CANtxCount = 0U;
 }
 
 
 /******************************************************************************/
 void CO_CANclearPendingSyncPDOs(CO_CANmodule_t *CANmodule){
-    uint32_t tpdoDeleted = 0U;
-
-    CO_LOCK_CAN_SEND();
-    /* Abort message from CAN module, if there is synchronous TPDO.
-     * Take special care with this functionality. */
-    if(/*messageIsOnCanBuffer && */CANmodule->bufferInhibitFlag){
-        /* clear TXREQ */
-        CANmodule->bufferInhibitFlag = false;
-        tpdoDeleted = 1U;
-    }
-    /* delete also pending synchronous TPDOs in TX buffers */
-    if(CANmodule->CANtxCount != 0U){
-        uint16_t i;
-        CO_CANtx_t *buffer = &CANmodule->txArray[0];
-        for(i = CANmodule->txSize; i > 0U; i--){
-            if(buffer->bufferFull){
-                if(buffer->syncFlag){
-                    buffer->bufferFull = false;
-                    CANmodule->CANtxCount--;
-                    tpdoDeleted = 2U;
-                }
-            }
-            buffer++;
-        }
-    }
-    CO_UNLOCK_CAN_SEND();
-
-
-    if(tpdoDeleted != 0U){
-        CO_errorReport((CO_EM_t*)CANmodule->em, CO_EM_TPDO_OUTSIDE_WINDOW, CO_EMC_COMMUNICATION, tpdoDeleted);
-    }
+//    uint32_t tpdoDeleted = 0U;
+//
+//    CO_LOCK_CAN_SEND();
+//    /* Abort message from CAN module, if there is synchronous TPDO.
+//     * Take special care with this functionality. */
+//    if(/*messageIsOnCanBuffer && */CANmodule->bufferInhibitFlag){
+//        /* clear TXREQ */
+//        CANmodule->bufferInhibitFlag = false;
+//        tpdoDeleted = 1U;
+//    }
+//    /* delete also pending synchronous TPDOs in TX buffers */
+//    if(CANmodule->CANtxCount != 0U){
+//        uint16_t i;
+//        CO_CANtx_t *buffer = &CANmodule->txArray[0];
+//        for(i = CANmodule->txSize; i > 0U; i--){
+//            if(buffer->bufferFull){
+//                if(buffer->syncFlag){
+//                    buffer->bufferFull = false;
+//                    CANmodule->CANtxCount--;
+//                    tpdoDeleted = 2U;
+//                }
+//            }
+//            buffer++;
+//        }
+//    }
+//    CO_UNLOCK_CAN_SEND();
+//
+//
+//    if(tpdoDeleted != 0U){
+//        CO_errorReport((CO_EM_t*)CANmodule->em, CO_EM_TPDO_OUTSIDE_WINDOW, CO_EMC_COMMUNICATION, tpdoDeleted);
+//    }
 }
 
 
 /******************************************************************************/
 void CO_CANverifyErrors(CO_CANmodule_t *CANmodule){
-    uint16_t rxErrors, txErrors, overflow;
-    CO_EM_t* em = (CO_EM_t*)CANmodule->em;
-    uint32_t err;
-
-    /* get error counters from module. Id possible, function may use different way to
-     * determine errors. */
-    rxErrors = CANmodule->txSize;
-    txErrors = CANmodule->txSize;
-    overflow = CANmodule->txSize;
-
-    err = ((uint32_t)txErrors << 16) | ((uint32_t)rxErrors << 8) | overflow;
-
-    if(CANmodule->errOld != err){
-        CANmodule->errOld = err;
-
-        if(txErrors >= 256U){                               /* bus off */
-            CO_errorReport(em, CO_EM_CAN_TX_BUS_OFF, CO_EMC_BUS_OFF_RECOVERED, err);
-        }
-        else{                                               /* not bus off */
-            CO_errorReset(em, CO_EM_CAN_TX_BUS_OFF, err);
-
-            if((rxErrors >= 96U) || (txErrors >= 96U)){     /* bus warning */
-                CO_errorReport(em, CO_EM_CAN_BUS_WARNING, CO_EMC_NO_ERROR, err);
-            }
-
-            if(rxErrors >= 128U){                           /* RX bus passive */
-                CO_errorReport(em, CO_EM_CAN_RX_BUS_PASSIVE, CO_EMC_CAN_PASSIVE, err);
-            }
-            else{
-                CO_errorReset(em, CO_EM_CAN_RX_BUS_PASSIVE, err);
-            }
-
-            if(txErrors >= 128U){                           /* TX bus passive */
-                if(!CANmodule->firstCANtxMessage){
-                    CO_errorReport(em, CO_EM_CAN_TX_BUS_PASSIVE, CO_EMC_CAN_PASSIVE, err);
-                }
-            }
-            else{
-                bool_t isError = CO_isError(em, CO_EM_CAN_TX_BUS_PASSIVE);
-                if(isError){
-                    CO_errorReset(em, CO_EM_CAN_TX_BUS_PASSIVE, err);
-                    CO_errorReset(em, CO_EM_CAN_TX_OVERFLOW, err);
-                }
-            }
-
-            if((rxErrors < 96U) && (txErrors < 96U)){       /* no error */
-                CO_errorReset(em, CO_EM_CAN_BUS_WARNING, err);
-            }
-        }
-
-        if(overflow != 0U){                                 /* CAN RX bus overflow */
-            CO_errorReport(em, CO_EM_CAN_RXB_OVERFLOW, CO_EMC_CAN_OVERRUN, err);
-        }
-    }
+//    uint16_t rxErrors, txErrors, overflow;
+//    CO_EM_t* em = (CO_EM_t*)CANmodule->em;
+//    uint32_t err;
+//
+//    /* get error counters from module. Id possible, function may use different way to
+//     * determine errors. */
+//    rxErrors = CANmodule->txSize;
+//    txErrors = CANmodule->txSize;
+//    overflow = CANmodule->txSize;
+//
+//    err = ((uint32_t)txErrors << 16) | ((uint32_t)rxErrors << 8) | overflow;
+//
+//    if(CANmodule->errOld != err){
+//        CANmodule->errOld = err;
+//
+//        if(txErrors >= 256U){                               /* bus off */
+//            CO_errorReport(em, CO_EM_CAN_TX_BUS_OFF, CO_EMC_BUS_OFF_RECOVERED, err);
+//        }
+//        else{                                               /* not bus off */
+//            CO_errorReset(em, CO_EM_CAN_TX_BUS_OFF, err);
+//
+//            if((rxErrors >= 96U) || (txErrors >= 96U)){     /* bus warning */
+//                CO_errorReport(em, CO_EM_CAN_BUS_WARNING, CO_EMC_NO_ERROR, err);
+//            }
+//
+//            if(rxErrors >= 128U){                           /* RX bus passive */
+//                CO_errorReport(em, CO_EM_CAN_RX_BUS_PASSIVE, CO_EMC_CAN_PASSIVE, err);
+//            }
+//            else{
+//                CO_errorReset(em, CO_EM_CAN_RX_BUS_PASSIVE, err);
+//            }
+//
+//            if(txErrors >= 128U){                           /* TX bus passive */
+//                if(!CANmodule->firstCANtxMessage){
+//                    CO_errorReport(em, CO_EM_CAN_TX_BUS_PASSIVE, CO_EMC_CAN_PASSIVE, err);
+//                }
+//            }
+//            else{
+//                bool_t isError = CO_isError(em, CO_EM_CAN_TX_BUS_PASSIVE);
+//                if(isError){
+//                    CO_errorReset(em, CO_EM_CAN_TX_BUS_PASSIVE, err);
+//                    CO_errorReset(em, CO_EM_CAN_TX_OVERFLOW, err);
+//                }
+//            }
+//
+//            if((rxErrors < 96U) && (txErrors < 96U)){       /* no error */
+//                CO_errorReset(em, CO_EM_CAN_BUS_WARNING, err);
+//            }
+//        }
+//
+//        if(overflow != 0U){                                 /* CAN RX bus overflow */
+//            CO_errorReport(em, CO_EM_CAN_RXB_OVERFLOW, CO_EMC_CAN_OVERRUN, err);
+//        }
+//    }
 }
 
 
@@ -382,44 +368,44 @@ void CO_CANinterrupt(CO_CANmodule_t *CANmodule){
 
         /* Clear interrupt flag */
     }
-
-
-    /* transmit interrupt */
-    else if(0){
-        /* Clear interrupt flag */
-
-        /* First CAN message (bootup) was sent successfully */
-        CANmodule->firstCANtxMessage = false;
-        /* clear flag from previous message */
-        CANmodule->bufferInhibitFlag = false;
-        /* Are there any new messages waiting to be send */
-        if(CANmodule->CANtxCount > 0U){
-            uint16_t i;             /* index of transmitting message */
-
-            /* first buffer */
-            CO_CANtx_t *buffer = &CANmodule->txArray[0];
-            /* search through whole array of pointers to transmit message buffers. */
-            for(i = CANmodule->txSize; i > 0U; i--){
-                /* if message buffer is full, send it. */
-                if(buffer->bufferFull){
-                    buffer->bufferFull = false;
-                    CANmodule->CANtxCount--;
-
-                    /* Copy message to CAN buffer */
-                    CANmodule->bufferInhibitFlag = buffer->syncFlag;
-                    /* canSend... */
-                    break;                      /* exit for loop */
-                }
-                buffer++;
-            }/* end of for loop */
-
-            /* Clear counter if no more messages */
-            if(i == 0U){
-                CANmodule->CANtxCount = 0U;
-            }
-        }
-    }
-    else{
-        /* some other interrupt reason */
-    }
+//
+//
+//    /* transmit interrupt */
+//    else if(0){
+//        /* Clear interrupt flag */
+//
+//        /* First CAN message (bootup) was sent successfully */
+//        CANmodule->firstCANtxMessage = false;
+//        /* clear flag from previous message */
+//        CANmodule->bufferInhibitFlag = false;
+//        /* Are there any new messages waiting to be send */
+//        if(CANmodule->CANtxCount > 0U){
+//            uint16_t i;             /* index of transmitting message */
+//
+//            /* first buffer */
+//            CO_CANtx_t *buffer = &CANmodule->txArray[0];
+//            /* search through whole array of pointers to transmit message buffers. */
+//            for(i = CANmodule->txSize; i > 0U; i--){
+//                /* if message buffer is full, send it. */
+//                if(buffer->bufferFull){
+//                    buffer->bufferFull = false;
+//                    CANmodule->CANtxCount--;
+//
+//                    /* Copy message to CAN buffer */
+//                    CANmodule->bufferInhibitFlag = buffer->syncFlag;
+//                    /* canSend... */
+//                    break;                      /* exit for loop */
+//                }
+//                buffer++;
+//            }/* end of for loop */
+//
+//            /* Clear counter if no more messages */
+//            if(i == 0U){
+//                CANmodule->CANtxCount = 0U;
+//            }
+//        }
+//    }
+//    else{
+//        /* some other interrupt reason */
+//    }
 }

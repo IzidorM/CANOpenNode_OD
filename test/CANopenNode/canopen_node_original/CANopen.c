@@ -47,6 +47,7 @@
 
 #include "CANopen.h"
 
+#define CO_USE_GLOBALS
 
 /* If defined, global variables will be used, otherwise CANopen objects will
    be generated with calloc(). */
@@ -370,6 +371,13 @@ CO_ReturnError_t CO_init(
 
     if(err){CO_delete(CANbaseAddress); return err;}
 
+    struct CO_OD OD = {
+            CO_OD_NoOfElements,
+            &CO_OD[0],
+            CO_SDO_ODExtensions,
+    };
+
+    
     for (i=0; i<CO_NO_SDO_SERVER; i++)
     {
         uint32_t COB_IDClientToServer;
@@ -383,15 +391,14 @@ CO_ReturnError_t CO_init(
             COB_IDServerToClient = OD_SDOServerParameter[i].COB_IDServerToClient;
         }
 
+
         err = CO_SDO_init(
                 CO->SDO[i],
                 COB_IDClientToServer,
                 COB_IDServerToClient,
                 OD_H1200_SDO_SERVER_PARAM+i,
                 i==0 ? 0 : CO->SDO[0],
-               &CO_OD[0],
-                CO_OD_NoOfElements,
-                CO_SDO_ODExtensions,
+                &OD,
                 nodeId,
                 CO->CANmodule[0],
                 CO_RXCAN_SDO_SRV+i,
@@ -508,6 +515,7 @@ CO_ReturnError_t CO_init(
             CO->HBcons,
             CO->em,
             CO->SDO[0],
+//            &OD,
            &OD_consumerHeartbeatTime[0],
             CO_HBcons_monitoredNodes,
             CO_NO_HB_CONS,

@@ -190,7 +190,7 @@ typedef struct{
 #define CON_OD_ELEMENT CO_OD_entry_t
 #define CON_OD struct CO_OD 
 
-CON_OD_ELEMENT *CO_OD_find(CON_OD *n, uint16_t index);
-uint16_t CO_OD_getLength(CON_OD_ELEMENT *n, uint8_t subIndex);
+void *CO_OD_find(void *n, uint16_t index);
+uint16_t CO_OD_getLength(void *n, uint8_t subIndex);
 
 #endif

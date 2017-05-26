@@ -3,10 +3,11 @@
 #include "canopen_od_interface.h"
 
 //uint16_t CO_OD_find(CO_SDO_t *SDO, uint16_t index){
-CON_OD_ELEMENT *CO_OD_find(CON_OD *n, uint16_t index)
+void *CO_OD_find(void *node, uint16_t index)
 {
     /* Fast search in ordered Object Dictionary. If indexes are mixed, this won't work. */
     /* If Object Dictionary has up to 2^N entries, then N is max number of loop passes. */
+    struct CO_OD n = node;
     uint16_t cur, min, max;
     CO_OD_entry_t* object;
 
@@ -61,7 +62,7 @@ CON_OD_ELEMENT *CO_OD_find(CON_OD *n, uint16_t index)
 
 
 /******************************************************************************/
-uint16_t CO_OD_getLength(CON_OD_ELEMENT *n, uint8_t subIndex)
+uint16_t CO_OD_getLength(void *n, uint8_t subIndex)
 {
         if(NULL == n)
         {
