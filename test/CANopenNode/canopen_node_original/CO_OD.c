@@ -265,6 +265,7 @@ unsigned char errorStatusBits[10];
 
 
 uint32_t test = 0; //0x2000
+uint16_t test2 = 0x55ff; //0x2001
 
 //{addr,subaddr,mask,size,ptr_to_data}
 static CO_OD_entry_t CO_OD[] = {
@@ -573,7 +574,14 @@ static CO_OD_entry_t CO_OD[] = {
                 4,
                 (void*)&test,
         },
-        
+        {
+                0x2001,
+                0x00,
+                CO_ODA_MEM_RAM |
+                CO_ODA_READABLE,
+                sizeof(test2),
+                (void*)&test2,
+        },
 };
 
 static CO_OD_extension_t COO_SDO_ODExtensions[sizeof(CO_OD) / sizeof(CO_OD_entry_t)];

@@ -5,6 +5,7 @@
 
 enum con_od_entry_id {
         OD_VAR,
+        OD_VAR_WITH_CALLBACK,
         OD_ARRAY,
 
         OD_RECORD,
@@ -97,6 +98,11 @@ struct con_od_list_node_array {
 #endif
 };
 
+struct con_od_callback {
+        uint32_t    (*pODFunc)(void*);
+        void                   *object;
+};
+
 struct con_od_list_node_var {
         struct con_od_list_node_generic head;
         uint8_t element_data_type;
@@ -106,15 +112,16 @@ struct con_od_list_node_var {
 #endif
 };
 
-//struct con_od_list_node_with_callback {
-//        struct con_od_list_node_generic head;
-//        uint32_t flags; //access rights, ...
-//        void (*callback) (void);
-//        struct con_od_data data;
-//#ifdef USE_OD_DESCRIPTION
-//        char * description;
-//#endif
-//};
+struct con_od_list_node_var_with_callback {
+        struct con_od_list_node_generic head;
+        uint8_t element_data_type;
+        void *element_data;
+        struct con_od_callback cb;
+#ifdef USE_OD_DESCRIPTION
+        struct con_od_entry_description description;
+#endif
+};
+
 
 #define CON_OD_ELEMENT void *
 #define CON_OD void *
