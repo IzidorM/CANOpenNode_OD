@@ -6,6 +6,7 @@
 enum con_od_entry_id {
         OD_VAR,
         OD_VAR_WITH_CALLBACK,
+        OD_DOMAIN,
         OD_ARRAY,
 
         OD_RECORD,
@@ -98,11 +99,6 @@ struct con_od_list_node_array {
 #endif
 };
 
-struct con_od_callback {
-        uint32_t    (*pODFunc)(void*);
-        void                   *object;
-};
-
 struct con_od_list_node_var {
         struct con_od_list_node_generic head;
         uint8_t element_data_type;
@@ -116,7 +112,15 @@ struct con_od_list_node_var_with_callback {
         struct con_od_list_node_generic head;
         uint8_t element_data_type;
         void *element_data;
-        struct con_od_callback cb;
+        uint32_t (*od_callback)(void*);
+#ifdef USE_OD_DESCRIPTION
+        struct con_od_entry_description description;
+#endif
+};
+
+struct con_od_list_node_domain {
+        struct con_od_list_node_generic head;
+        uint32_t (*od_callback)(void*);
 #ifdef USE_OD_DESCRIPTION
         struct con_od_entry_description description;
 #endif
@@ -134,8 +138,8 @@ void *CO_OD_getDataPointer(void const *n, uint8_t const sub_index);
 
 uint8_t CO_OD_getFlagsPointer(CON_OD_ELEMENT const *t);
 
-uint16_t CO_OD_getIndex(void *t);
-uint16_t CO_OD_getAttribute(void *n, uint8_t const sub_index);
+//uint16_t CO_OD_getIndex(void *t);
+uint16_t CO_OD_getAttribute(void const *n, uint8_t const sub_index);
 
 char* CO_OD_getEntryName(void *n);
 char* CO_OD_getEntrySubindexName(void *n, uint16_t sub_index);
@@ -146,6 +150,11 @@ uint8_t CO_OD_getObjectType(void *n);
 uint16_t CO_OD_getDataType(void *n, uint16_t sub_index);
 
 int32_t con_od_add_element_to_od(void *root, void * new_od_element);
+
+uint8_t CO_OD_getMaxSubindex(const void* n);
+
+//void *CO_OD_getCallback(void *OD, const void* n);
+uint32_t (*CO_OD_getCallback(void *OD, const void* n))(void*) ;
 
         
 #ifdef USE_OD_DESCRIPTION
@@ -160,6 +169,20 @@ int32_t con_od_add_element_to_od(void *root, void * new_od_element);
                 _node.description.entry_name = _description_name;       \
                 _node.description.entry_description = _description;     \
         } while(0)                                          
+
+#define INIT_OD_ENTRY_VAR_WITH_CALLBACK(_node, _od_index, _type, _attr, _data_ptr, _cb, _description_name, _description) \
+        do {                                                            \
+                _node.head.next_od_element = NULL;                      \
+                _node.head.index = _od_index;                           \
+                _node.head.element_id = OD_VAR_WITH_CALLBACK;           \
+                _node.head.attributes = _attr;                          \
+                _node.element_data_type = _type;                        \
+                _node.element_data = _data_ptr;                         \
+                _node.od_callback = _cb;                         \
+                _node.description.entry_name = _description_name;       \
+                _node.description.entry_description = _description;     \
+        } while(0)                                          
+
 
 
 #define INIT_OD_ENTRY_VAR_STATIC(_node, _od_index, _type, _attr, _data_ptr, _description_name, _description) \
@@ -185,7 +208,7 @@ int32_t con_od_add_element_to_od(void *root, void * new_od_element);
                 _node.head.next_od_element = NULL;                      \
                 _node.head.index = _od_index;                           \
                 _node.head.element_id = OD_RECORD;                      \
-                _node.head.attributes = 0;                              \
+                _node.head.attributes = CO_ODA_READABLE;                              \
                 _node.number_of_elements = _num_of_subelem;             \
                 _node.subelements = _subelements_data_ptr;              \
                 _node.description.entry_name = _description_name;       \
@@ -245,6 +268,17 @@ int32_t con_od_add_element_to_od(void *root, void * new_od_element);
                 _node.description.entry_name = _description_name;       \
                 _node.description.entry_description = _description;     \
         } while(0)
+
+#define INIT_OD_ENTRY_DOMAIN(_node, _od_index, _attr, _cb, _description_name, _description) \
+        do {                                                            \
+                _node.head.next_od_element = NULL;                      \
+                _node.head.index = _od_index;                           \
+                _node.head.element_id = OD_DOMAIN;                      \
+                _node.head.attributes = _attr;                          \
+                _node.od_callback = _cb;                                \
+                _node.description.entry_name = _description_name;       \
+                _node.description.entry_description = _description;     \
+        } while(0)                                          
 
 
 #else

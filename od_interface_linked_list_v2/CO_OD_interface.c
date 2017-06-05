@@ -1,18 +1,18 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include "canopen_od_interface.h"
+#include "CO_OD_interface.h"
 
-uint16_t CO_OD_getIndex(void *t)
-{
-        struct con_od_list_node_generic const *od_node = t;
-
-        if(NULL == od_node)
-        {
-                return 0;
-        }
-
-        return od_node->index;
-}
+//uint16_t CO_OD_getIndex(void *t)
+//{
+//        struct con_od_list_node_generic const *od_node = t;
+//
+//        if(NULL == od_node)
+//        {
+//                return 0;
+//        }
+//
+//        return od_node->index;
+//}
 
 void *CO_OD_find(void *n, uint16_t const index)
 {
@@ -98,7 +98,7 @@ uint16_t CO_OD_getLength(void const *n, uint8_t const sub_index)
                 }
                 else
                 {
-                        if ((rec->number_of_elements) > sub_index)
+                        if ((rec->number_of_elements) >= sub_index)
                         {
                                 struct con_od_record_entry *tmp;
                                 tmp = (rec->subelements + (sub_index - 1));
@@ -109,6 +109,12 @@ uint16_t CO_OD_getLength(void const *n, uint8_t const sub_index)
                                 size = 0U;
                         }
                 }
+        }
+        else if (OD_DOMAIN == od_node->element_id)
+        {
+                //TODO: Try what happens if size = 0
+                //size = 32; //CO_SDO_BUFFER_SIZE;
+                size = 32; //CO_SDO_BUFFER_SIZE;
         }
         else
         {
@@ -178,7 +184,7 @@ void *CO_OD_getDataPointer(void const *n, uint8_t const sub_index)
                 }
                 else
                 {
-                        if ((rec->number_of_elements) > sub_index)
+                        if ((rec->number_of_elements) >= sub_index)
                         {
                                 struct con_od_record_entry *tmp;
                                 tmp = (rec->subelements + (sub_index - 1));
@@ -190,6 +196,10 @@ void *CO_OD_getDataPointer(void const *n, uint8_t const sub_index)
                         }
                 }
         }
+        else if (OD_DOMAIN == od_node->element_id)
+        {
+                return NULL;
+        }
         else
         {
                 // simple data type
@@ -198,7 +208,7 @@ void *CO_OD_getDataPointer(void const *n, uint8_t const sub_index)
         }
 }
 
-uint16_t CO_OD_getAttribute(void *n, uint8_t const sub_index)
+uint16_t CO_OD_getAttribute(void const *n, uint8_t const sub_index)
 {
         struct con_od_list_node_generic const *od_node = n;
         if (NULL == od_node)
@@ -241,7 +251,7 @@ uint16_t CO_OD_getAttribute(void *n, uint8_t const sub_index)
                 }
                 else
                 {
-                        if ((rec->number_of_elements) > sub_index)
+                        if ((rec->number_of_elements) >= sub_index)
                         {
                                 struct con_od_record_entry *tmp;
                                 tmp = (rec->subelements + (sub_index - 1));
@@ -253,6 +263,11 @@ uint16_t CO_OD_getAttribute(void *n, uint8_t const sub_index)
                         }
                 }
         }
+        else if (OD_DOMAIN == od_node->element_id)
+        {
+                struct con_od_list_node_domain *d = (void *) n;
+                return d->head.attributes;
+        }
         else
         {
                 // simple data type
@@ -261,20 +276,54 @@ uint16_t CO_OD_getAttribute(void *n, uint8_t const sub_index)
         }
 }
 
-//uint8_t CO_OD_getFlagsPointer(CON_OD_ELEMENT const *t)
-//{
-////    CO_OD_extension_t* ext;
-////
-////    if((entryNo == 0xFFFFU) || (SDO->ODExtensions == 0)){
-////        return 0;
-////    }
-////
-////    ext = &SDO->ODExtensions[entryNo];
-////
-////    return &ext->flags[subIndex];
-//        return 0;
-//}
-//
+uint8_t CO_OD_getMaxSubindex(const void* n)
+{
+        struct con_od_list_node_generic const *od_node = n;
+        if (NULL == od_node)
+        {
+                return 0U;
+        }
+        else if (OD_ARRAY == od_node->element_id)
+        {
+                struct con_od_list_node_array *a = (void *) n;
+                return a->number_of_elements;
+        }
+        else if (OD_RECORD == od_node->element_id)
+        {
+
+                struct con_od_list_node_record  *rec = (void *) n;
+                return rec->number_of_elements;
+        }
+        else
+        {
+                // simple data type
+                return 0;
+        }
+}
+
+uint32_t (*CO_OD_getCallback(void *OD, const void* n))(void*)
+{
+        struct con_od_list_node_generic const *od_node = n;
+        if (NULL == od_node)
+        {
+                return NULL;
+        }
+        else if (OD_VAR_WITH_CALLBACK == od_node->element_id)
+        {
+                struct con_od_list_node_var_with_callback *v = (void *) od_node;
+                return v->od_callback;
+        }
+        else if (OD_DOMAIN == od_node->element_id)
+        {
+                struct con_od_list_node_domain *d = (void *) od_node;
+                return d->od_callback;
+        }
+        else
+        {
+                // Callback is not supported
+                return NULL;
+        }
+}
 
 char* CO_OD_getEntryName(void *n)
 {
@@ -333,7 +382,7 @@ char* CO_OD_getEntrySubindexName(void *n, uint16_t sub_index)
                 }
                 else
                 {
-                        if ((rec->number_of_elements) > sub_index)
+                        if ((rec->number_of_elements) >= sub_index)
                         {
                                 struct con_od_record_entry *tmp;
                                 tmp = (rec->subelements + (sub_index - 1));
@@ -417,7 +466,7 @@ char* CO_OD_getEntrySubindexDescription(void *n, uint16_t sub_index)
                 }
                 else
                 {
-                        if ((rec->number_of_elements) > sub_index)
+                        if ((rec->number_of_elements) >= sub_index)
                         {
                                 struct con_od_record_entry *tmp;
                                 tmp = (rec->subelements + (sub_index - 1));
@@ -494,7 +543,7 @@ uint16_t CO_OD_getDataType(void *n, uint16_t sub_index)
                 }
                 else
                 {
-                        if ((rec->number_of_elements) > sub_index)
+                        if ((rec->number_of_elements) >= sub_index)
                         {
                                 struct con_od_record_entry *tmp;
                                 tmp = (rec->subelements + (sub_index - 1));
