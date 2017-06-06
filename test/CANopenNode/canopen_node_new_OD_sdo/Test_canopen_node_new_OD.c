@@ -595,7 +595,7 @@ void test_SDO_expedited_transfer(void)
 
 static uint32_t domain_test_callback(void *arg)
 {
-        volatile CO_ODF_arg_t *ODF_arg = arg;
+//        volatile CO_ODF_arg_t *ODF_arg = arg;
         domain_test_callback_cnt += 1;
         return 0;
 }
