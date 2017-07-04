@@ -301,7 +301,7 @@ uint8_t CO_OD_getMaxSubindex(const void* n)
         }
 }
 
-uint32_t (*CO_OD_getCallback(void *OD, const void* n))(void*)
+uint32_t (*CO_OD_getCallback(const void* n))(void*)
 {
         struct con_od_list_node_generic const *od_node = n;
         if (NULL == od_node)

@@ -87,7 +87,7 @@ void test_NMT_init(void)
         uint8_t node_id = 0x20;
         struct con_od_list_node_var OD;
         //just init OD entry so next ptr is set to null. 
-        INIT_OD_ENTRY_VAR(OD, 0x2000, OD_TYPE_UINT32, CO_ODA_WRITEABLE, &node_id, NULL, NULL);
+        INIT_OD_ENTRY_VAR(&OD, 0x2000, OD_TYPE_UINT32, CO_ODA_WRITEABLE, &node_id, NULL, NULL);
 
         CO_NMT_t *NMT = init_nmt(node_id, &OD);
         TEST_ASSERT_NOT_NULL(NMT);
@@ -96,7 +96,7 @@ void test_NMT_init(void)
         TEST_ASSERT_EQUAL_PTR(nmt_state_changed_callback, NMT->state_changed_callback);
 
         // check boot msg
-        TEST_ASSERT_EQUAL_UINT32(node_id, last_sent_buffer.ident);
+        TEST_ASSERT_EQUAL_UINT32(CO_CAN_ID_BOOTUP | node_id, last_sent_buffer.ident);
         TEST_ASSERT_EQUAL_UINT8(0, last_sent_buffer.data[0]);
 
         // check callbacks
@@ -107,7 +107,7 @@ void test_NMT_init(void)
 
         //TODO: Test automatic startup
         uint32_t nmt_startup = 0; // no automatic startup capabilities
-        INIT_OD_ENTRY_VAR(OD, 0x1f80, OD_TYPE_UINT32, CO_ODA_WRITEABLE,
+        INIT_OD_ENTRY_VAR(&OD, 0x1f80, OD_TYPE_UINT32, CO_ODA_WRITEABLE,
                           &nmt_startup, NULL, NULL);
 
         NMT = init_nmt(node_id, &OD);
@@ -134,7 +134,7 @@ void test_NMT_state_changes(void)
         uint8_t node_id = 0x20;
         struct con_od_list_node_var OD;
         //just init OD entry so next ptr is set to null. 
-        INIT_OD_ENTRY_VAR(OD, 0x2000, OD_TYPE_UINT32, CO_ODA_WRITEABLE, &node_id, NULL, NULL);
+        INIT_OD_ENTRY_VAR(&OD, 0x2000, OD_TYPE_UINT32, CO_ODA_WRITEABLE, &node_id, NULL, NULL);
 
         CO_NMT_t *NMT = init_nmt(node_id, &OD);
         TEST_ASSERT_NOT_NULL(NMT);
